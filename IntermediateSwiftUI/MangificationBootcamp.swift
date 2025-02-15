@@ -28,7 +28,7 @@ struct MangificationBootcamp: View {
             Rectangle()
                 .frame(height: 420)
                 .scaleEffect(1 + currentAmount)
-                .foregroundStyle(.gray.opacity(0.4))
+                .foregroundStyle(.black)
                 .gesture(
                     MagnificationGesture()
                         .onChanged({ value in
