@@ -44,9 +44,13 @@ class CoreDataRelationShipsViewModel: ObservableObject{
     
     let manager = CoreDataManager.instance
     @Published var businesses: [BusinessEntity] = []
+    @Published var departments: [DepartmentEntity] = []
+    @Published var employees: [EmployeeEntity] = []
     
     init() {
         fetchBusiness()
+        fetchDepartments()
+        fetchEmployee()
     }
     
     func fetchBusiness(){
@@ -55,23 +59,79 @@ class CoreDataRelationShipsViewModel: ObservableObject{
         do{
             businesses = try manager.context.fetch(request)
         }catch{
-            print("ERROR fetching core data \(error.localizedDescription)")
+            print("ERROR fetching Business Entity \(error.localizedDescription)")
+        }
+    }
+    
+    func fetchDepartments(){
+        let request = NSFetchRequest<DepartmentEntity>(entityName: "DepartmentEntity")
+        
+        do{
+            departments = try manager.context.fetch(request)
+        }catch {
+            print("Error fetching Department request \(error.localizedDescription)")
+        }
+    }
+    
+    func fetchEmployee(){
+        let request = NSFetchRequest<EmployeeEntity>(entityName: "EmployeeEntity")
+        
+        do{
+            employees = try manager.context.fetch(request)
+        }catch {
+            print("Error fetching Employee request \(error.localizedDescription)")
         }
     }
     
     func addBusiness(){
         let newBusinnes = BusinessEntity(context: manager.context)
-        newBusinnes.name = "Apple"
+        newBusinnes.name = "Microsoft"
+        //add existing department to the new Business
+        newBusinnes.departments = [departments[0] , departments[1]]
+        
+        //add existing employess to the new business
+        newBusinnes.employees = [employees[1]]
+        
+        //add new business to existinf department
         save()
     }
     
-//    func deleteBusiness(entity: BusinessEntity){
-//        manager.container.viewContext.delete(entity)
-//        save()
-//    }
+    func addDepertment(){
+        let newDepartment = DepartmentEntity(context: manager.context)
+        newDepartment.name  = "Engineering"
+        //newDepartment.employees = [employees[0]]
+        //alternatif
+        newDepartment.addToEmployees(employees[1])
+//        newDepartment.businesses =  [businesses[0]]
+        save()
+    }
+    
+    func addEmployee(){
+        let newEmployee = EmployeeEntity(context: manager.context)
+        newEmployee.name = "Ece"
+        newEmployee.age = 21
+        newEmployee.dateJoined = Date()
+//        newEmployee.departments = departments[0]
+//        newEmployee.business = businesses[0]
+        save()
+    }
+    
+    func deleteBusiness(entity: EmployeeEntity){
+        manager.container.viewContext.delete(entity)
+        save()
+    }
     
     func save(){
-        manager.save()
+        businesses.removeAll()
+        departments.removeAll()
+        employees.removeAll()
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0){
+            self.fetchBusiness()
+            self.fetchDepartments()
+            self.fetchEmployee()
+            self.manager.save()
+        }
     }
     
 }
@@ -83,7 +143,7 @@ struct CoreDataRelationShipsBootcamp: View {
     var body: some View {
         NavigationStack{
             ScrollView {
-                VStack(spacing:20){
+                VStack(){
                     Button {
                         viewModel.addBusiness()
                     } label: {
@@ -100,6 +160,22 @@ struct CoreDataRelationShipsBootcamp: View {
                         HStack(alignment: .top){
                             ForEach(viewModel.businesses) { business in
                                 BusinessView(entity: business)
+                            }
+                        }
+                    }
+                    
+                    ScrollView(.horizontal) {
+                        HStack(alignment: .top) {
+                            ForEach(viewModel.departments) { department in
+                                DepartmentView(entity: department)
+                            }
+                        }
+                    }
+                    
+                    ScrollView(.horizontal) {
+                        HStack(alignment: .top) {
+                            ForEach(viewModel.employees) { employee in
+                                EmployeeView(entity: employee)
                             }
                         }
                     }
@@ -120,29 +196,153 @@ struct BusinessView: View {
     
     var body: some View {
         VStack(spacing: 20){
-            Text("Name: \(entity.name ?? "No Name")")
-                .bold()
-            
-            if let departments = entity.departments?.allObjects as? [DepartmentEntity]{
-                Text("Departments:")
-                    .bold()
-                ForEach(departments) { department in
-                    Text(department.name ?? "No")
+            HStack(spacing: 12){
+                
+                VStack{
+                    Text("Name")
+                        .bold()
+                        .foregroundStyle(.black)
+                        .underline()
+                    Text("\(entity.name ?? "Noname")")
+                }
+                
+                if let departments = entity.departments?.allObjects as? [DepartmentEntity]{
+                    VStack{
+                        Text("Departments:")
+                            .bold()
+                            .foregroundStyle(.black)
+                            .underline()
+                        ForEach(departments) { department in
+                            Text(department.name ?? "No")
+                        }
+                    }
+                }
+                
+                if let employess = entity.employees?.allObjects as? [EmployeeEntity]{
+                    VStack {
+                        Text("Employees:")
+                            .bold()
+                            .foregroundStyle(.black)
+                            .underline()
+                        ForEach(employess) { employee in
+                            Text(employee.name ?? "No")
+                        }
+                    }
                 }
             }
             
-            if let employess = entity.employees?.allObjects as? [EmployeeEntity]{
-                Text("Employees:")
-                    .bold()
-                ForEach(employess) { employee in
-                    Text(employee.name ?? "No")
-                }
-            }
         }
         .padding()
         .background(Color.indigo.opacity(0.8))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .foregroundStyle(.white)
+        .padding(.horizontal)
     }
 }
+
+struct DepartmentView: View{
+    
+    let entity: DepartmentEntity
+    
+    var body: some View {
+        VStack(spacing: 20){
+            HStack(spacing: 12){
+                
+                VStack{
+                    Text("Name")
+                        .bold()
+                        .foregroundStyle(.black)
+                        .underline()
+                    Text("\(entity.name ?? "Noname")")
+                }
+                
+                if let business = entity.businesses?.allObjects as? [BusinessEntity]{
+                    VStack{
+                        Text("Businesses:")
+                            .bold()
+                            .foregroundStyle(.black)
+                            .underline()
+                        ForEach(business) { business in
+                            Text(business.name ?? "No")
+                        }
+                    }
+                }
+                
+                if let employess = entity.employees?.allObjects as? [EmployeeEntity]{
+                    VStack {
+                        Text("Employees:")
+                            .bold()
+                            .foregroundStyle(.black)
+                            .underline()
+                        ForEach(employess) { employee in
+                            Text(employee.name ?? "No")
+                        }
+                    }
+                }
+            }
+            
+        }
+        .padding()
+        .background(Color.green.opacity(0.8))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .foregroundStyle(.white)
+        .padding(.horizontal)
+    }
+}
+
+struct EmployeeView: View {
+    
+    let entity: EmployeeEntity
+    
+    var body: some View {
+        VStack(spacing: 20){
+            HStack(spacing: 12){
+                
+                VStack{
+                    Text("Name")
+                        .bold()
+                        .foregroundStyle(.black)
+                        .underline()
+                    Text("\(entity.name ?? "Noname")")
+                }
+                
+                VStack {
+                    Text("Age:")
+                        .bold()
+                        .foregroundStyle(.black)
+                        .underline()
+                    Text("\(entity.age)")
+                }
+                
+                
+                VStack {
+                    Text("Business:")
+                        .bold()
+                        .foregroundStyle(.black)
+                        .underline()
+                    Text("\(entity.business?.name ?? "Noname")")
+                }
+                
+                VStack {
+                    Text("Department:")
+                        .bold()
+                        .foregroundStyle(.black)
+                        .underline()
+                    Text("\(entity.departments?.name ?? "Noname")")
+                }
+                
+                
+            }
+            
+        }
+        .padding()
+        .background(Color.teal.opacity(0.8))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .foregroundStyle(.white)
+        .padding(.horizontal)
+    }
+}
+
 
 #Preview {
     CoreDataRelationShipsBootcamp()
