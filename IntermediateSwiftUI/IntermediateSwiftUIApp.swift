@@ -11,7 +11,7 @@ import SwiftUI
 struct IntermediateSwiftUIApp: App {
     var body: some Scene {
         WindowGroup {
-            WeakSelfBootcamp()
+            CodableBootcamp()
         }
     }
 }
